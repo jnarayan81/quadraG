@@ -30,6 +30,7 @@ USING PERL 5.x
 quadraG does not support Perl 5.x, and no plans exist to provide such support. For a strong biological analysis package for perl 5, see perl https://www.perl.org/ and bioperl: http://bioperl.org/
 
 Perl modules
+
 You also need to have Perl, BioPerl, and some other modules installed in your
 machine:
 
