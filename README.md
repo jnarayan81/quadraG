@@ -29,6 +29,50 @@ USING PERL 5.x
 
 quadraG does not support Perl 5.x, and no plans exist to provide such support. For a strong biological analysis package for perl 5, see perl https://www.perl.org/ and bioperl: http://bioperl.org/
 
+Perl modules
+You also need to have Perl, BioPerl, and some other modules installed in your
+machine:
+
+Bio::SeqIO
+Bio::AlignIO
+Cwd
+File::chdir
+File::Copy
+POSIX
+Statistics::Distributions
+Statistics::Multtest
+Tie::File
+Try::Tiny
+Data::Dumper
+File::Spec::Functions
+File::Basename
+FindBin
+Capture::Tiny
+Getopt::Long
+
+You can check if you have them installed in your machine with 
+'perl -M<module> -e 1'. It will return an error message if it isn't installed.
+
+E.g. "perl -MBio::SeqIO -e 1"
+
+To install these modules, you can do through the CPAN or manually downloading
+(http://search.cpan.org/) and compiling them. To use CPAN, you can do by 
+writing:
+
+> perl -MCPAN -e 'install <module>'
+
+To install manually, search for the most recent version of these modules and,
+for each, download and type the following (should work most of the time, except
+for modules like BioPerl, of course):
+
+> tar -zxvf <module.tar.gz>
+> perl Makefile.PL
+> make
+> make test
+> make install
+
+For more detail, you could visit: http://bioinformaticsonline.com/blog/view/710/how-to-install-perl-modules-manually-using-cpan-command-and-other-quick-ways
+
 ## DOCUMENTATION
 
 For documentation, see quadrqG_manual.pdf in the base project folder.
