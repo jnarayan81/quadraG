@@ -2,7 +2,7 @@
       --\'G'/--
          \ /
          " "
->---quadraG v0.1---<
+ >---quadraG v0.1---<
 
 # quadraG
 quadraG: an open and parallel tools for automated G-quadruplexes analysis
