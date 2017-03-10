@@ -109,6 +109,7 @@ This documentation may be out of date depending on whether or not the developers
     * GFF       GFF entry
  
  quadraG tabfile column
+ 
     * SEQ       quadraG seauence
     * NAME      Name of the quadraG
     * REFNAME   Reference name
