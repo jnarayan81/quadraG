@@ -108,6 +108,19 @@ This documentation may be out of date depending on whether or not the developers
     * EXSEQ     Average amount of sequence left between
     * GFF       GFF entry
  
+ quadraG tabfile column
+    * SEQ       quadraG seauence
+    * NAME      Name of the quadraG
+    * REFNAME   Reference name
+    * START     Start coordinate of quadraG
+    * END       End coordinate of quadraG
+    * MUTATION  Number of random mutation
+    * SIZE      Size of the quadraG
+    * STRAND    Strand of of the quadraG
+    * ISLAND    Number of G island
+    * SCORE     Score of the quadraG
+    
+ 
 ## ANNOTATION DESCRIPTIONS
 Coming Soon
 
