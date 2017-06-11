@@ -1,0 +1,321 @@
+#!/usr/bin/env perl
+
+=head1 NAME
+
+alienomics.pl - alienomics script by Jitendra Narayan
+
+=head1 SYNOPSIS
+
+perl alienomics.pl --conf_file_path ../test.conf
+
+=cut
+
+use strict;
+use warnings;
+
+use Bio::SeqIO;
+use Cwd;
+use File::chdir;
+use File::Copy;
+use POSIX;
+use File::Temp qw(tempfile);
+use Statistics::Distributions qw(chisqrprob);
+use Statistics::Multtest qw(BY qvalue);
+use Tie::File;
+use Try::Tiny;
+use Bio::DB::Fasta;
+use Data::Dumper;
+use File::Spec::Functions qw(rel2abs);
+use File::Basename;
+use FindBin;
+use File::Remove;
+use File::Path qw(make_path remove_tree);
+use Capture::Tiny ':all';
+use Getopt::Long;
+use Statistics::R;
+use Math::Round;
+use File::Find;
+use Bio::DB::Taxonomy;
+use Pod::Usage;
+use Parallel::ForkManager;
+use lib "$FindBin::Bin/.";
+require 'trouver_module.pm';
+
+#Basics mandatory alienomics variables
+my (
+$create_conf, 		# If you wish ALIENOMICS to create an empty configuration file for you
+$outfile, 		# Name for ALIENOMICS's main configuration file
+$version, 		# ALIENOMICS's version?
+$help,			# If you are asking for help
+$man,			# Manual for detail help 
+$Out_dir_path,		# Path to directory containing CDS data.
+$blastdb_path,		# Path to directory containing blast database.
+$taxdump_path,		# Path to directory containing taxonomy data.
+$augustusconfig_path,	# Path to augustus config data.
+$homology_file_path,	# Path to homology relationship file (OrthoMCL 1.4 format)
+$output_dir,		# Path to directory where ALIENOMICS will write results
+$genetic_code,		# Genetic code to be used when translating coding sequences
+$reference_genome,	# Reference genome ID.
+$max_processors,	# Maximum number of processors available. $max_processors=`grep "^processor" /proc/cpuinfo | tail -n 1 | awk '{print $3}'`;
+$gc_filter,		# GC thresholds range sepeared with DOT
+
+);
+
+
+# Default settings here for alienomics
+my $current_version = "0.1";	#Alienomics version
+my $stringency = "standard";	# Used to automatically create a new configuration file with default values.
+my $conf_file = "test.conf";	# The path to a valid alienomics configuration file. This file contains all parameters needed to execute  ALIENOMICS.
+
+print <<'WELCOME';
+
+>---TROUVER v0.1---<
+
+Citation - Trouver: SV detection pipeline
+License: Creative Commons Licence
+Bug-reports and requests to: jnarayan81ATgmail.com and karineATgmail.com
+
+WELCOME
+
+$|++;
+
+#Get options for alienomics
+GetOptions(
+	"create_conf" 		=> \$create_conf,
+	"stringency=s" 		=> \$stringency,
+	"conf_file_path=s" 	=> \$conf_file,
+	"version" 		=> \$version,
+	"help" 			=> \$help,
+	"Out_dir_path=s" 	=> \$Out_dir_path,
+	"blastdb_path=s" 	=> \$blastdb_path,
+	"taxdump_path=s" 	=> \$taxdump_path,
+	"augustusconfig_path=s" => \$augustusconfig_path,
+	"homology_file_path=s" 	=> \$homology_file_path,
+	"output_dir=s" 		=> \$output_dir,
+	"genetic_code=i"	=> \$genetic_code,
+	"outfile=s" 		=> \$outfile,
+	"reference_genome=s" 	=> \$reference_genome,
+	"max_processors=i" 	=> \$max_processors,
+	"gc_filter=i" 		=> \$gc_filter
+); 
+
+#or pod2usage();
+
+pod2usage(-verbose => 2) if ($man);
+pod2usage(-verbose => 1) if ($help);
+pod2usage(-msg => 'Please supply a valid filename.') unless ($conf_file && -s $conf_file);
+
+# Printing alienomics version
+if ($version) { 
+    print "\n  TROUVER version $current_version\n\n";
+    exit();
+}
+
+# Creating alienomics configuration file if asked to
+if ($create_conf) { 
+  create_conf_file($stringency, $Out_dir_path, $homology_file_path, $output_dir, $outfile, $genetic_code, $max_processors, $gc_filter);
+  exit;
+}
+
+# Checking if users are asking for help or forgot to provide an essential parameter
+if (($help)||(!defined $conf_file)||(!-e $conf_file)) {
+  help($current_version);
+  exit;
+}
+
+# used to measure total execution time
+my $start_time = time(); 
+
+my $project_config_file = $conf_file;
+
+# Absolute path of the current working directory
+my $ALIENOMICS_path = dirname(rel2abs($0)); print " Path of the dir\n$ALIENOMICS_path --------\n";
+
+# Parameters_ref - stores all user-defined parameters, such as file locations and program parameters
+my $parameters_ref = read_config_files(\$project_config_file, \$ALIENOMICS_path);  # stores the configuration in a hash reference
+
+# Check all the parameters for their correctness
+check_parameters($parameters_ref); #checkin if user setted the parameters right
+
+# Delete the directory if already exisit
+if (-e $parameters_ref->{project_dir_path}) { print "Deleting the existing directory named :-$parameters_ref->{project_dir_path}\n"; remove_tree( $parameters_ref->{project_dir_path});}
+
+# Creating the needed directories if they don't exist
+if (!-e $parameters_ref->{project_dir_path}) { mkdir ($parameters_ref->{project_dir_path}) || die ("Couldn't create the directory specified as '$parameters_ref->{project_dir_path}', check if you are trying to create a subdirectory in a non-existent directory or if you don't have permission to create a directory there.\n"); }
+else {
+  die("Directory $parameters_ref->{project_dir_path} already exists.\n");
+}
+
+if (!-e "$parameters_ref->{project_dir_path}/results") { mkdir ("$parameters_ref->{project_dir_path}/results") || die ("Couldn't create the directory with the results of ALIENOMICS's analysis.\nDetails: $!\n"); }
+if (!-e "$parameters_ref->{project_dir_path}/intermediate_files") { mkdir ("$parameters_ref->{project_dir_path}/intermediate_files/") || die ("Couldn't create the directory with the steps of ALIENOMICS's analysis.\nDetails: $!\n"); }
+if (!-e "$parameters_ref->{project_dir_path}/intermediate_files/sv") { mkdir ("$parameters_ref->{project_dir_path}/intermediate_files/sv") || die ("Couldn't create the directory with the steps of ALIENOMICS's analysis.\nDetails: $!\n"); }
+if (!-e "$parameters_ref->{project_dir_path}/intermediate_files/tmp") { mkdir ("$parameters_ref->{project_dir_path}/intermediate_files/tmp") || die ("Couldn't create the directory with the steps of ALIENOMICS's analysis.\nDetails: $!\n"); }
+if (!-e "$parameters_ref->{project_dir_path}/intermediate_files/stat") { mkdir ("$parameters_ref->{project_dir_path}/intermediate_files/stat") || die ("Couldn't create the directory with the steps of ALIENOMICS's analysis.\nDetails: $!\n"); }
+
+
+#Copy file to the locations
+copy($project_config_file, "$parameters_ref->{project_dir_path}/project_config");
+copy($parameters_ref->{homology_file_path}, "$parameters_ref->{project_dir_path}/cluster_file");
+
+#Write the log files
+open (LOG, ">", "$parameters_ref->{project_dir_path}/log") || die ('Could not create log file in ', $parameters_ref->{project_dir_path}, '. Please check writing permission in your current directory', "\n");
+open (LOG_ERR, ">", "$parameters_ref->{project_dir_path}/log.err") || die ('Could not create log.err file in ', $parameters_ref->{project_dir_path}, '. Please check writing permission in your current directory', "\n");
+open (SUMMARY, ">", "$parameters_ref->{project_dir_path}/results/$parameters_ref->{summary}") || die ('Could not create summary file. Please check writing permission in your current directory', "\n");
+
+
+#Parse the genome file and store in Hash
+my ($sequence_data_ref, $id2tmp_id_ref, $tmp_id2id_ref) = parse_genome_files($parameters_ref);
+
+my %abc=%{$sequence_data_ref}; 
+
+#foreach (sort keys %abc) { print "$_ \t $abc{$_}\n"; }
+
+
+my $max_procs = 1;
+my @names = keys %abc;
+
+  # hash to resolve PID's back to child specific information
+  my $pm =  new Parallel::ForkManager($max_procs);
+
+ # Setup a callback for when a child finishes up so we can
+  # get it's exit code
+  $pm->run_on_finish (
+    sub { my ($pid, $exit_code, $ident) = @_;
+      #print "** $ident just got out of the pool ".
+        "with PID $pid and exit code: $exit_code\n";
+    }
+  );
+
+  $pm->run_on_start(
+    sub { my ($pid,$ident)=@_;
+     #print "** $ident started, pid: $pid\n";
+    }
+  );
+
+  $pm->run_on_wait(
+    sub {
+      #print "** Have to wait for one children ...\n"
+    },
+    0.5
+  );
+
+  NAMES:
+# Lets check for alien in all the sequence now
+	#foreach my $key (keys %abc) { 
+	#	my $accession_number=$key; # Condider the sequence name here
+	#	&pLine(".");
+	#	my $sequence=$abc{$key}{nuc_seq};
+        #	print "$sequence\n";
+	#}
+
+  foreach my $child ( 0 .. $#names ) {
+    my $pid = $pm->start($names[$child]) and next NAMES;
+    #checkATCG($names[$child]);
+    my $sequence=$abc{$names[$child]}{nuc_seq};
+    findQuadra($names[$child], $abc{$names[$child]}{nuc_seq}, 10, 'testref', 1);
+    $pm->finish($child); # pass an exit code to finish
+  }
+
+  print "Waiting for Children...\n";
+  $pm->wait_all_children;
+  print "Everybody is out of the pool!\n";
+
+#-------------------------------------------------------------------------------
+print "Analysis finished, closing TROUVER.  \nGood bye :) \n" if $parameters_ref->{verbose};
+
+
+close(SUMMARY);
+close(LOG_ERR);
+close(LOG);
+
+
+sub checkATCG {
+my $name=shift;
+my $DNA=$abc{$name}{nuc_seq};
+my $length=length $DNA;
+my $a=($DNA=~tr/A//);
+my $b=($DNA=~tr/C//);
+my $c=($DNA=~tr/G//);
+my $d=($DNA=~tr/T//);
+my $Total=$a+$b+$c+$d;
+my $GC=($DNA=~s/GC/GC/g);
+my $AT=($DNA=~s/AT/AT/g);
+my $GCper=($GC/($Total)*100);
+print"$name\t$Total\t$AT\t$GC\t$GCper:\n";
+
+}
+
+
+__END__
+#Create a fastadb withg reference
+my $db = Bio::DB::Fasta->new($parameters_ref->{reference_genome_file});
+
+#Lets map the genome;
+print "Working on bowtie2 index\n";
+#system ("bowtie2-build toyOneline.fasta toyOneline");
+
+print "Mapping with Bowtie2\n";
+#system ("bowtie2 -x toyOneline -1 $parameters_ref->{R1} -2 $parameters_ref->{R2} -t -p 30 --local  -L 31 --ma 1 --mp 3 --np 0 --rdg 2,3 --rfg 2,3 --ignore-quals -k 2000 -i S,1,0.25 --score-min L,0,0.9 -S OUT.sam");
+#system ("bowtie2 -x toyOneline -1 $parameters_ref->{R1} -2 $parameters_ref->{R2} -S OUT.sam");
+
+print "SAM to BAM convert\n";
+#system ("samtools view -@ 30 -bS OUT.sam > OUT.bam");
+
+#Samtools Mpileup filter
+#system ("samtools mpileup -go mpileupOUT.bcf OUT.bam");
+
+print "Sorting BAM file \n";
+#system ("samtools sort -@ 30 -T see -O BAM -o /home/urbe/Tools/TROUVER/sortedOUT.bam OUT.sam");
+
+# Extract the average coverage
+#system ("$parameters_ref->{samtools_path} mpileup $parameters_ref->{bamfile} | awk '{ count++ ; SUM += $4 } END { print "Total: " SUM "\t" "Nucleotides: " count "\t" "Average_coverage: " SUM/count }'");
+#(use $8 instead; if pileup with -cf option)
+#system ("$parameters_ref->{samtools_path} mpileup $parameters_ref->{bamfile} | awk '{ count++ ; SUM += $4 } END { print "Total: " SUM "\t" "Nucleotides: " count "\t" "Average_coverage: " SUM/count }'");
+
+#Extract the coverage region
+print "Extracting the coverage\n";
+system ("$parameters_ref->{bedtools_path} genomecov -ibam $parameters_ref->{bamfile} -bga -split > $parameters_ref->{project_dir_path}/intermediate_files/sv/deletion.bed");
+
+#Predict the gene location in your sequence file
+print "\nYou opted for --> $parameters_ref->{mode} <-- mode of Trouver\n"; &pLine("_");
+
+#Lets start checking
+if ($parameters_ref->{mode} eq 'del') {
+	my $fh = &read_fh("$parameters_ref->{project_dir_path}/intermediate_files/sv/deletion.bed");
+	open (DEL, ">", "$parameters_ref->{project_dir_path}/results/deletion.res") || die ('Could not create deletion file. Please check writing permission in your current directory', "\n");
+	print DEL "Chr\tDelSt\tDelEd\tReads\tLen\tGC\tnonATGC\texLen\texSeq\tdelScore\n";
+
+	while (my $line = <$fh>) {
+	#next if /^\s*$/;  #Ignore blank lines
+   	chomp $line;
+   	my @vals = split(/\t/, $line);
+   	my $delLen=$vals[2]-$vals[1];
+   		if ($vals[3]< 3) {
+		my $seq=extractSeq($vals[0], $vals[1], $vals[2], $db);
+	   	my ($gccontent,$others,$totalcount,$gcount,$ccount,$acount,$tcount)=processGCAT($seq);
+		my $delScore=(1-($others/$delLen));
+		print DEL "$line\t$delLen\t$gccontent\t$others\t$totalcount\t$seq\t$delScore\n";
+   		#$sequences{$seqid}{desc} = $2;
+   		}
+	}
+	
+	# Lets check for alien in all the sequence now
+	#foreach my $key (keys %abc) { 
+	#	my $accession_number=$key; # Condider the sequence name here
+	#	&pLine(".");
+	#	my $sequence=$abc{$key}{nuc_seq};
+		
+	#}		
+}
+
+else { print "Check your conguration file\n TERMINATING\n"; exit;}
+	
+
+#-------------------------------------------------------------------------------
+print "Analysis finished, closing TROUVER.  \nGood bye :) \n" if $parameters_ref->{verbose};
+
+close(SUMMARY);
+close(LOG_ERR);
+close(LOG);
+
+
