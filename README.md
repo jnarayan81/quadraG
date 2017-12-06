@@ -36,7 +36,7 @@ Perl modules
 
 You also need to have Perl, BioPerl, and some other modules installed in your
 machine:
-
+```
 Bio::SeqIO
 Bio::AlignIO
 Cwd
@@ -53,7 +53,7 @@ File::Basename
 FindBin
 Capture::Tiny
 Getopt::Long
-
+```
 You can check if above mentioned modules installed in your machine with 
 'perl -M<module> -e 1'. It will return an error message if it isn't installed.
 
