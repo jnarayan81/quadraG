@@ -5,29 +5,26 @@
     ---quadraG v0.1---
 
 # quadraG
-quadraG: an open and parallel tools for automated G-quadruplexes analysis
+quadraG: A fast multithreading based tool to detect G-quadruplexes in genome or transcriptome sequences
 
-Copyright 2017 Jitendra Narayan <jnarayan81@gmail.com> ; Rahul Agarwal <vibes1002003@gmail.com>
+Copyright 2017 Jitendra Narayan <jitendra.narayan@unamur.be> ; Rahul Agarwal <vibes1002003@gmail.com>
 
 ## LICENSE
 
-This file is part of quadrqG.
-
 quadraG is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-quadraG is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+quadraG is distributed with the hope that it will be useful for reseachers worldwide, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License along with quadraG, in a file called COPYING. If not, see <http://www.gnu.org/licenses/>.
 
 ## INSTALLATION
 
-See INSTALLATION. This is a standard setuptools setup, if you already know the procedure.
+See INSTALLATION steps below:
 
- 1) Edit setup.sh and change $SWEETPATH to the full directory where you've placed the package.
+ 1) Edit setup.sh and change $PATH to the full directory where you've placed the package.
  
  2) To automatically place the package into your environment, add
-    > source <path to>/setup.sh 
-    to your .bash_profile
+    > source <path to>/setup.sh to your .bash_profile
 
 Be sure to source your .bash_profile (or just setup.sh) before using quadraG
 
@@ -57,12 +54,12 @@ FindBin
 Capture::Tiny
 Getopt::Long
 
-You can check if you have them installed in your machine with 
+You can check if above mentioned modules installed in your machine with 
 'perl -M<module> -e 1'. It will return an error message if it isn't installed.
 
 E.g. "perl -MBio::SeqIO -e 1"
 
-To install these modules, you can do through the CPAN or manually downloading
+To install these modules, you can do either through the CPAN or manually downloading
 (http://search.cpan.org/) and compiling them. To use CPAN, you can do by 
 writing:
 
@@ -136,13 +133,13 @@ Coming Soon
 
 ## FAQ
 
-Who can I report bugs to or ask questions?
+Can I report bugs  or ask questions?
 Please report your issues to ticketing system.
 
 ## CONTRIBUTION
 
 Feel free to clone this repository and use it under the licensing terms.
 
-Additionally, as the project is on github, you may submit patches, ticket requests, edit the wiki, send pull requests - anything you like and have the permissions to do. I will enjoy any and all contributions, I'm sure! :)
+Additionally, as the project is on github, you may submit patches, ticket requests, edit the wiki, send pull requests - anything you like and have the permissions to do. I will encourage any suggestions from followers :)
 
-As always, you can contact the authors at <jnarayan81@gmail.com> or <vibes1002003@gmail.com>.
+As always, you can contact the authors at <jitendra.narayan@unamur.be> or <vibes1002003@gmail.com>.
