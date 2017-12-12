@@ -5,7 +5,7 @@
     ---quadraG v0.1---
 
 # quadraG
-quadraG: A fast multithreading based tool to detect G-quadruplexes in genome or transcriptome sequences
+quadraG: a fast multithreading based tool to detect G-quadruplexes in genome or transcriptome sequences
 
 Copyright 2017 Jitendra Narayan <jitendra.narayan@unamur.be> ; Rahul Agarwal <vibes1002003@gmail.com>
 
