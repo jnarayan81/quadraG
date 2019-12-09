@@ -7,7 +7,7 @@
 # quadraG
 quadraG: a fast multithreading based tool to detect G-quadruplexes in genome or transcriptome sequences
 
-Copyright 2017 Jitendra Narayan <jitendra.narayan@unamur.be> ; Rahul Agarwal <vibes1002003@gmail.com>
+Copyright 2017 Jitendra Narayan <jnarayan81@gmail.com> ; Rahul Agarwal <vibes1002003@gmail.com>
 
 ## LICENSE
 
@@ -142,4 +142,4 @@ Feel free to clone this repository and use it under the licensing terms.
 
 Additionally, as the project is on github, you may submit patches, ticket requests, edit the wiki, send pull requests - anything you like and have the permissions to do. I will encourage any suggestions from followers :)
 
-As always, you can contact the authors at <jitendra.narayan@unamur.be> or <vibes1002003@gmail.com>.
+As always, you can contact the authors at <jnarayan81@gmail.com> or <vibes1002003@gmail.com>.
