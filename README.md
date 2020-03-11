@@ -9,6 +9,8 @@ quadraG: a fast multithreading based tool to detect G-quadruplexes in genome or 
 
 Copyright 2017 Jitendra Narayan <jnarayan81@gmail.com> ; Rahul Agarwal <vibes1002003@gmail.com>
 
+``quadraG`` is currently in active development and is not ready for general use. The software will be fully described in a forthcoming publication.
+
 ## LICENSE
 
 quadraG is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
